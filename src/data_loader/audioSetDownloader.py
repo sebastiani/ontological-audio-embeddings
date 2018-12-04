@@ -56,8 +56,19 @@ class DataDownloader(object):
         rows = self.csvParse(self.dataFolder)
         newRows = []
         # implement a checkpoint to continue downloading later.
+        skip = []
+        with open('progress.txt', 'r') as f:
+            for url in f:
+                fname = url.split('_')
+                ytid = fname[-1].split('.')[0]
+                skip.append(ytid)
+                
+        
         badUrls = []
         for i, video in enumerate(rows):
+            if video['YTID'] in skip:
+                print('alredy downloaded')
+                continue
             audioName = "raw_"+ video['YTID'] + ".m4a"
             video['filename'] = os.path.join(dataFolder, audioName)
             newRows.append(video)
