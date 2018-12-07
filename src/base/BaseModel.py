@@ -108,19 +108,18 @@ class BaseModel(object):
                 fake_samples = self.Generator(inputs.float())
 
                 # Calculate Discriminator Loss
-                # There's some fake_B detaching???? check that out!
                 self.set_requires_grad(self.Discriminator, True)
                 D_optimizer.zero_grad()
 
                 # pairs up generated samples with noisy real samples
                 fake_pairs = torch.cat((noisy_inputs, fake_samples), 1)
-                pred_fake = self.Discriminator(fake_pairs)
-                D_loss_fake = criterionGAN(pred_fake, True)
+                pred_fake = self.Discriminator(fake_pairs.detach())  # detaching so backprop doesnt go to the Generator
+                D_loss_fake = criterionGAN(pred_fake, False)
 
                 # pairs up real samples and noisy samples
                 true_pairs = torch.cat((noisy_inputs, inputs), 1)
                 pred_real = self.Discriminator(true_pairs)
-                D_loss_real = criterionGAN(pred_real)
+                D_loss_real = criterionGAN(pred_real, True)
 
                 discriminatorLoss = 0.5*(D_loss_fake + D_loss_real)
 
@@ -134,7 +133,7 @@ class BaseModel(object):
                 G_optimizer.zero_grad()
 
                 pred_fake = self.Discriminator(fake_pairs)
-                G_loss = criterionGAN(pred_fake)
+                G_loss = criterionGAN(pred_fake)  # check that it isnt detached
                 G_loss_L1 = criterionL1(fake_samples, inputs) * self.lambda_l1
 
                 generatorLoss = G_loss + G_loss_L1
