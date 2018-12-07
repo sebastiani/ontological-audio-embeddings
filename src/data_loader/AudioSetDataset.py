@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 class AudioSetDataset(Dataset):
     """Google AudioSet  in Raw in Form"""
 
-    def __init__(self, csvFile, rootDir, labelDict):
+    def __init__(self, csvFile,  labelDict):
         """
             Args:
                 csv_file (string): Path to the csv file with annotations.
@@ -22,7 +22,6 @@ class AudioSetDataset(Dataset):
         self.dataFrame = pd.read_csv(csvFile)
         with open(labelDict, 'rb') as f:
             self.label_dict, self.num_classes = pickle.load(f)
-        self.rootDir = rootDir
 
     def __len__(self):
         return len(self.dataFrame)
