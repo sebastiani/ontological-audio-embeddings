@@ -49,7 +49,8 @@ class DataDownloader(object):
                         lineDict[headers[0].strip()] = line[0].strip()
                         lineDict[headers[1].strip()] = line[1].strip()
                         lineDict[headers[2].strip()] = line[2].strip()
-                        lineDict[headers[3].strip()] = line[3].join(',')
+                        lineDict[headers[3].strip()] = ','.join(line[3:])
+
                         rows.append(lineDict)
                 lineCount += 1
             if savePkl:

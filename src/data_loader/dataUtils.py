@@ -5,6 +5,8 @@ import pickle
 import multiprocessing
 from multiprocessing.pool import ThreadPool
 
+from ontological_audio_embeddings.src.data_loader.audioSetDownloader import DataDownloader
+
 
 class DataUtils(object):
 
@@ -42,38 +44,76 @@ class DataUtils(object):
         with open(pkl, 'rb') as f:
             rows = pickle.load(f)
         labels = []
-        with open('dataset.csv', 'r') as out:
+        with open('dataset.csv', 'w') as out:
             labels = []
             for row in rows:
                 filename = os.path.join(self.preprocPath, 'audio_'+row['YTID']+'.npy')
                 if not os.path.isfile(filename):
                     continue
                 label = None
-                i = row.keys()[-1]
+                i = list(row.keys())[-1]
                 try:
                     label = row[i].split(',')[classesIndex]
 
                 except IndexError:
                     label = row[i].split(',')[0]
 
-                labels.append(label)
+                labels.append(label.strip().replace('"', ''))
 
-                line = ','.join([filename, label]) + '\n'
+                line = ','.join([filename, label.strip().replace('"', '')]) + '\n'
                 out.write(line)
         unique = list(set(labels))
         num = len(unique)
         numclass = range(len(unique))
-        label_dict = zip((unique, numclass))
+        label_dict = dict(zip(unique, numclass))
         with open('label_dict.pkl', 'wb') as out2:
             pickle.dump((label_dict, num), out2)
 
         print("Finished writing csv file")
 
 
+    def padOrTruncate(self, source, dest):
+        files = os.listdir(source)
+
+        def pad_truncate(filename):
+            x = np.load(os.path.join(source, filename))
+            desired_len = 160086
+            out = os.path.join(dest, filename)
+            if x.shape[0] == desired_len:
+                np.save(out, x)
+
+            elif x.shape[0] < desired_len:
+                padw = desired_len - x.shape[0]
+                x = np.pad(x, (0, padw), mode='constant')
+                np.save(out, x)
+
+            else:
+                x = x[:desired_len]
+                np.save(out, x)
+
+        pool = ThreadPool(multiprocessing.cpu_count())
+        results = []
+        for file in files:
+            results.append(pool.apply_async(pad_truncate, (file,)))
+
+        pool.close()
+        pool.join()
+
+        print("Finished!")
+
+
+
 if __name__ == '__main__':
+    csvPath = '/home/akasha/projects/ontological_audio_embeddings/data/raw/balanced_train_segments.csv'
+    dataFolder = "/home/akasha/projects/ontological_audio_embeddings/data/raw/raw_audio/"
+    dataDownloader = DataDownloader(csvPath, dataFolder)
+
+    #rows = dataDownloader.csvParse("/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/")
     utils = DataUtils('/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSet')
-    intermediate = "/home/akasha/projects/ontological_audio_embeddings/data/intermediate/raw_audio"
-    utils.saveToNPY(intermediate)
-    pkl = "/home/akasha/projects/ontological_audio_embeddings/data/raw/dataDictionary.pkl"
-    utils.pkl2CSV(pkl)
+    #intermediate = "/home/akasha/projects/ontological_audio_embeddings/data/intermediate/raw_audio"
+    #utils.saveToNPY(intermediate)
+    #pkl = "/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/dataDictionary.pkl"
+    #utils.pkl2CSV(pkl)
+    utils.padOrTruncate('/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSet',
+                        '/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSetv2')
 
