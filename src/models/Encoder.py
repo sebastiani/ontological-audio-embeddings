@@ -4,8 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math, copy, time
 
-from ontological_audio_embeddings.utils.utils import cloneModule
-from ontological_audio_embeddings.src.models.custom_layers.LayerNorm import LayerNorm
+from ontological_audio_embeddings.src.utils.utils import cloneModule
+from ontological_audio_embeddings.src.models.customLayers.LayerNorm import LayerNorm
 
 
 class Encoder(nn.Module):

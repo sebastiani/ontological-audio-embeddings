@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from ontological_audio_embeddings.src.models.Transformer import Transformer
 import functools
 from torch.optim import lr_scheduler
 
@@ -28,6 +29,66 @@ class GANLoss(nn.Module):
             target_tensor = self.get_target_tensor(input, target_is_real)
             return self.loss(input, target_fake_label)
 
+class Generator(nn.Module):
+    def __init__(self, input_dim, num_filters=32, norm_layer=nn.BatchNorm1d, use_sigmoid=False):
+        super(Generator, self).__init__()
+        self.input_dim = input_dim
+
+        kernel_size = 500   # corresponds to 10ms length kernel
+        pad_size = 1
+        nf_mult = 2
+
+        stride = 2
+
+        self.encoder_layers = []
+        previous_mult = input_dim
+        for i in range(0, 5):
+            mult = nf_mult**i
+            self.encoder_layers.append(nn.Conv1d(previous_mult, num_filters*mult, kernel_size, stride=stride))
+            self.encoder_layers.append(nn.Conv1d(num_filters*mult, num_filters*mult, kernel_size, stride=stride))
+            self.encoder_layers.append(norm_layer(num_filters*mult))
+            previous_mult = num_filters * mult
+        self.encoder_relu = nn.LeakyReLU(0.2, True)
+
+        self.decoder_layers = []
+
+        for i in reversed(range(0, 5)):
+            mult = nf_mult**i
+            self.encoder_layers.append(nn.ConvTranspose1d(previous_mult, num_filters * mult, kernel_size, stride=stride))
+            self.encoder_layers.append(nn.ConvTranspose1d(num_filters * mult, num_filters * mult, kernel_size, stride=stride))
+            self.encoder_layers.append(norm_layer(num_filters * mult))
+            previous_mult = num_filters * mult
+
+        self.decoder_relu = nn.LeakyReLU(0.2, True)
+
+
+
+    def forward(self, x):
+        encoder_outputs = []
+        output = x
+        count = 0
+        print("input ", x.size)
+        for i, layer in enumerate(self.encoder_layers):
+            if count < 2:
+                output = self.encoder_relu(layer(output))
+                print("output", i, ": ", output.size())
+                count += 1
+            else :
+                output = layer(output)
+                encoder_outputs.append(output)
+                print(len(encoder_outputs))
+                count = 0
+
+        count = 0
+        i = 4
+        for layer in self.decoder_layers:
+            output = self.decoder_relu(layer(output))
+            if count == 2:
+                output = output + encoder_outputs[i]
+                count = 0
+                i -= 1
+
+        return output
 
 
 class Discriminator(nn.Module):

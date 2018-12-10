@@ -19,8 +19,8 @@ from ontological_audio_embeddings.src.models.Generator import Generator
 
 class Transformer(nn.Module):
 
-    def __init__(self, x_vocab, target_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
-        self.x_vocab = x_vocab
+    def __init__(self, target_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
+        #self.x_vocab = x_vocab
         self.target_vocab = target_vocab
         self.N = N
         self.d_model = d_model
