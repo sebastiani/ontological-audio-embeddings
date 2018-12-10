@@ -11,12 +11,13 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from ontological_audio_embeddings.src.data_loader.AudioSetDataset import AudioSetDataset
 # torch.backends.cudnn.enabled = False
 
-from ontological_audio_embeddings.src.models.PatchGAN import Discriminator, GANLoss
-from ontological_audio_embeddings.src.models.Transformer import Transformer
+from ontological_audio_embeddings.src.models.PatchGAN import Discriminator, Generator, GANLoss
+#from ontological_audio_embeddings.src.models.Transformer import Transformer
 
 class BaseModel(object):
     def __init__(self, params):
-        self.Generator = Transformer
+        #self.Generator = Transformer
+        self.Generator = Generator
         self.Discriminator = Discriminator
 
         self.cuda = params['cuda']
@@ -39,18 +40,18 @@ class BaseModel(object):
         dataset = AudioSetDataset(params['dataset'], params['label_dict'])
         datsetSize = len(dataset)
         indices = list(range(datsetSize))
-        vsplit = int(np.floor(params['validation_split'] * datsetSize))
-        tsplit = int(np.floor(params['test_split'] * datsetSize))
+        #vsplit = int(np.floor(params['validation_split'] * datsetSize))
+        #tsplit = int(np.floor(params['test_split'] * datsetSize))
 
         np.random.seed(params['seed'])
         np.random.shuffle(indices)
 
-        train_indices, val_indices = indices[vsplit:], indices[:vsplit]
-        train_indices, test_indices = train_indices[tsplit:], indices[:tsplit]
+        #train_indices, val_indices = indices[vsplit:], indices[:vsplit]
+        #train_indices, test_indices = train_indices[tsplit:], indices[:tsplit]
 
-        trainSampler = SubsetRandomSampler(train_indices)
-        valSampler = SubsetRandomSampler(val_indices)
-        testSampler = SubsetRandomSampler(test_indices)
+        trainSampler = SubsetRandomSampler(indices)
+        #valSampler = SubsetRandomSampler(val_indices)
+        #testSampler = SubsetRandomSampler(test_indices)
 
         trainLoader = DataLoader(
             dataset,
@@ -59,6 +60,7 @@ class BaseModel(object):
             num_workers=4
         )
 
+        """
         valLoader = DataLoader(
             dataset,
             batch_size=min(params['batch_size'], len(val_indices)),
@@ -72,7 +74,7 @@ class BaseModel(object):
             sampler=testSampler,
             num_workers=4
         )
-
+        """
 
         # Start training loop
         if self.cuda:

@@ -42,74 +42,106 @@ class Generator(nn.Module):
 
         self.encoder_layers = []
         previous_mult = input_dim
-        for i in range(0, 4):
-            mult = nf_mult**i
-            self.encoder_layers.append(nn.Conv1d(previous_mult, num_filters*mult, kernel_size, stride=stride))
-            self.encoder_layers.append(nn.Conv1d(num_filters*mult, num_filters*mult, kernel_size, stride=stride))
-            self.encoder_layers.append(norm_layer(num_filters*mult))
-            previous_mult = num_filters * mult
+
+        # Encoder
+        self.encoder1 = nn.Conv1d(previous_mult, num_filters, kernel_size, stride=stride)
+        self.encoder2 = nn.Conv1d(num_filters, num_filters, kernel_size, stride=stride)
+        self.encoder3 = norm_layer(num_filters)
+
+        self.encoder4 = nn.Conv1d(num_filters, num_filters*2, kernel_size, stride=stride)
+        self.encoder5 = nn.Conv1d(num_filters*2, num_filters * 2, kernel_size, stride=stride)
+        self.encoder6 = norm_layer(num_filters*2)
+
+        self.encoder7 = nn.Conv1d(num_filters*2, num_filters * 3, kernel_size, stride=stride)
+        self.encoder8 = nn.Conv1d(num_filters*3, num_filters * 3, kernel_size, stride=stride)
+        self.encoder9 = norm_layer(num_filters*3)
+
+        self.encoder10 = nn.Conv1d(num_filters*3, num_filters * 4, kernel_size, stride=stride)
+        self.encoder11 = nn.Conv1d(num_filters*4, num_filters * 4, kernel_size, stride=stride)
+        self.encoder12 = norm_layer(num_filters * 4)
+
+        # Decoder
+        self.decoder1 = nn.ConvTranspose1d(num_filters*4, num_filters * 3, kernel_size+1, stride=stride)
+        self.decoder2 = nn.ConvTranspose1d(num_filters * 3, num_filters * 3, kernel_size + 1, stride=stride)
+        self.decoder3 = norm_layer(num_filters * 3)
+
+        self.decoder4 = nn.ConvTranspose1d(num_filters * 3, num_filters * 2, kernel_size + 1, stride=stride)
+        self.decoder5 = nn.ConvTranspose1d(num_filters * 2, num_filters * 2, kernel_size + 1, stride=stride)
+        self.decoder6 = norm_layer(num_filters * 2)
+
+        self.decoder7 = nn.ConvTranspose1d(num_filters * 2, num_filters, kernel_size-2, stride=stride)
+        self.decoder8 = nn.ConvTranspose1d(num_filters, num_filters, kernel_size + 1, stride=stride)
+        self.decoder9 = norm_layer(num_filters)
+
+        self.decoder10 = nn.ConvTranspose1d(num_filters, num_filters, kernel_size-1, stride=stride)
+
+
         self.encoder_relu = nn.LeakyReLU(0.2, True)
-
-        self.decoder_layers = []
-
-
-        for i in reversed(range(0, 3)):
-            mult = nf_mult**i
-            self.decoder_layers.append(nn.ConvTranspose1d(previous_mult, num_filters * mult, kernel_size+1, stride=stride))
-            self.decoder_layers.append(nn.ConvTranspose1d(num_filters * mult, num_filters * mult, kernel_size+1, stride=stride))
-            self.decoder_layers.append(norm_layer(num_filters * mult))
-            previous_mult = num_filters * mult
-
-        self.decoder_layers.append(nn.ConvTranspose1d(previous_mult, 1, kernel_size, stride=stride))
         self.decoder_relu = nn.LeakyReLU(0.2, True)
 
 
     def forward(self, x):
-        encoder_outputs = []
-        output = x
-        count = 0
-        print("input ", x.size)
-        print("Num of layers: ", len(self.encoder_layers))
-        for i, layer in enumerate(self.encoder_layers):
-            if count <= 2:
-                output = self.encoder_relu(layer(output))
-                #print("Encoder Layer", i, ": ", output.size())
-                count += 1
-            else:
-                output = layer(output)
-                if len(encoder_outputs) <= 3:
-                    print("appending ", output.size())
-                    encoder_outputs.append(output)
-                count = 0
+        x = self.encoder_relu(self.encoder1(x))
+        x = self.encoder2(x)
+        x1 = self.encoder_relu(self.encoder3(x))
 
-        print("Num of highways ", len(encoder_outputs))
-        count = 0
-        i = 2
-        for layer in self.decoder_layers:
-            output = self.decoder_relu(layer(output))
-            print("Decoder layer ", output.size())
-            if count == 2:
-                print("Adding ", output.size())
-                print("with ", encoder_outputs[i].size())
-                output = output + encoder_outputs[i]
-                count = 0
-                i -= 1
+        x = self.encoder_relu(self.encoder4(x1))
+        x = self.encoder5(x)
+        x2 = self.encoder_relu(self.encoder6(x))
 
-            count += 1
+        x = self.encoder_relu(self.encoder7(x2))
+        x = self.encoder8(x)
+        x3 = self.encoder_relu(self.encoder9(x))
 
-        output = self.decoder_relu(self.decoder_layers[-1](output))
-        print("Output size ", output.size())
-        return output
+        x = self.encoder_relu(self.encoder10(x3))
+        x = self.encoder12(x)
 
+        # Decoding
+        x = self.decoder_relu(self.decoder1(x)) + x3
+        x = self.decoder2(x)
+        x = self.decoder_relu(self.decoder3(x))
+
+
+        x = self.decoder_relu(self.decoder4(x)) + x2
+        x = self.decoder5(x)
+        x = self.decoder_relu(self.decoder6(x))
+
+        x = self.decoder_relu(self.decoder7(x)) + x1
+        x = self.decoder8(x)
+        x = self.decoder_relu(self.decoder9(x))
+
+        x = self.decoder_relu(self.decoder10(x))
+        print('Decoder ', x.size())
+
+        return x
+
+    def getEmbedding(self, x):
+        x = self.encoder_relu(self.encoder1(x))
+        x = self.encoder2(x)
+        x = self.encoder_relu(self.encoder3(x))
+
+        x = self.encoder_relu(self.encoder4(x))
+        x = self.encoder5(x)
+        x = self.encoder_relu(self.encoder6(x))
+
+        x = self.encoder_relu(self.encoder7(x))
+        x = self.encoder8(x)
+        x = self.encoder_relu(self.encoder9(x))
+
+        x = self.encoder_relu(self.encoder10(x))
+        x = self.encoder12(x)
+
+        return(x)
 
 class Discriminator(nn.Module):
-    def __init__(self, input_dim, num_filters=64, n_layers=3, norm_layer=nn.BatchNorm1d, use_sigmoid=False):
+    def __init__(self, input_dim, num_filters=32, n_layers=4, norm_layer=nn.BatchNorm1d, use_sigmoid=False):
         super(Discriminator, self).__init__()
 
         kernel_size = 160
-        pad_size = 1
+        pad_size = 0
+        stride = 3
         sequence = [
-            nn.Conv1d(input_dim, num_filters, kernel_size=kernel_size),
+            nn.Conv1d(input_dim, num_filters, kernel_size=kernel_size, stride=stride),
             nn.LeakyReLU(0.2, True)
         ]
 
@@ -120,7 +152,7 @@ class Discriminator(nn.Module):
             nf_mult = min(2**n, 8)
             sequence += [
                 nn.Conv1d(num_filters*nf_mult_prev, num_filters*nf_mult,
-                          kernel_size=kernel_size, stride=2, padding=pad_size, bias=False),
+                          kernel_size=kernel_size, stride=stride, padding=pad_size, bias=False),
                 norm_layer(num_filters * nf_mult),
                 nn.LeakyReLU(0.2, True)
             ]
@@ -129,12 +161,12 @@ class Discriminator(nn.Module):
         nf_mult = min(2**n_layers, 8)
         sequence += [
             nn.Conv1d(num_filters * nf_mult_prev, num_filters*nf_mult,
-                      kernel_size=kernel_size, stride=1, padding=pad_size, bias=False),
+                      kernel_size=kernel_size, stride=stride, padding=pad_size, bias=False),
             norm_layer(num_filters * nf_mult),
             nn.LeakyReLU(0.2, True)
         ]
 
-        sequence +=  [nn.Conv1d(num_filters * nf_mult, 1, kernel_size=kernel_size, stride=1, padding=pad_size)]
+        sequence +=  [nn.Conv1d(num_filters * nf_mult, 1, kernel_size=kernel_size, stride=stride, padding=pad_size)]
 
         if use_sigmoid:
             sequence += [nn.Sigmoid()]

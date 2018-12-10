@@ -1,0 +1,11 @@
+cuda: True
+batch_size: 32
+epochs: 32
+learning_rate: 0.01
+momentum: 0.8
+beta1: 0.9
+beta2: 0.9
+L1_lambda: 0.01
+dataset: '/home/akasha/projects/onotological_audio_embeddings/data/preprocessed/rawAudioSetv2/'
+validation_split: 0.05
+test_split: 0.05
