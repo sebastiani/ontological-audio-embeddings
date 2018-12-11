@@ -101,6 +101,36 @@ class DataUtils(object):
 
         print("Finished!")
 
+    def normalize(self, source, dest):
+        files = os.listdir(source)
+
+        maxes = []
+        mins = []
+        for f in files:
+            if '.npy' in f:
+                x = np.load(f)
+                m = max(x)
+                maxes.append(m)
+                m = min(x)
+                mins.append(m)
+        f_max = max(maxes)
+        f_min = min(mins)
+
+        m = 2.0/(f_max - f_min)
+        b = -1.0 - m*f_min
+        def normalize(f):
+            x = np.load(f)
+            new_x = m*x + b
+            np.save(f, new_x)
+
+        pool = ThreadPool(multiprocessing.cpu_count())
+        results = []
+        for file in files:
+            results.append(pool.apply_async(normalize, (file, )))
+        pool.close()
+        pool.join()
+
+
 
 
 if __name__ == '__main__':
