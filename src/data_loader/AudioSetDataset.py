@@ -20,7 +20,7 @@ class AudioSetDataset(Dataset):
                 csv_file (string): Path to the csv file with annotations.
                 root_dir (string): Directory with all the images.
         """
-        self.dataFrame = pd.read_csv(csvFile)
+        self.dataFrame = pd.read_csv(csvFile, header=None)
         self.audioNames = self.dataFrame.iloc[:, 0]
         self.labels = self.dataFrame.iloc[:, 1]
         with open(labelDict, 'rb') as f:
@@ -39,6 +39,7 @@ class AudioSetDataset(Dataset):
         #label = self.label_dict[label]
         #y = np.zeros((1, self.num_classes)).astype('float')
         #y[label] = 1.0
+        
         audio = np.expand_dims(np.load(audioName), axis=0)
 
         snr = Beta.rvs(self.alpha, self.beta, size=1)
@@ -46,6 +47,6 @@ class AudioSetDataset(Dataset):
         snr = 0.5 if snr >= 0.5 else snr
         noise_var = snr * var
         noisy_audio = audio + np.random.normal(0.0, noise_var, audio.shape)
-        sample = {'clean_audio': audio, 'noisy_audio': noisy_audio, 'label': label}
+        sample = ( audio,  noisy_audio,  label)
         return sample
 

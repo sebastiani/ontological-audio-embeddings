@@ -18,16 +18,16 @@ class GANLoss(nn.Module):
         else:
             self.loss = nn.BCELoss()
 
-        def get_target_tensor(self, input, target_is_real):
-            if target_is_real:
-                target_tensor = self.real_label
-            else:
-                target_tensor = self.fake_label
-            return target_tensor.expand_as(input)
+    def get_target_tensor(self, input, target_is_real):
+        if target_is_real:
+            target_tensor = self.real_label
+        else:
+            target_tensor = self.fake_label
+        return target_tensor.expand_as(input)
 
-        def __call__(self, input, target_is_real):
-            target_tensor = self.get_target_tensor(input, target_is_real)
-            return self.loss(input, target_fake_label)
+    def __call__(self, input, target_is_real):
+        target_tensor = self.get_target_tensor(input, target_is_real)
+        return self.loss(input, target_tensor)
 
 class Generator(nn.Module):
     def __init__(self, input_dim, num_filters=16, norm_layer=nn.BatchNorm1d, p=0.3):
@@ -62,22 +62,23 @@ class Generator(nn.Module):
 
         # Decoder
         self.decoder1 = nn.ConvTranspose1d(num_filters*4, num_filters * 3, kernel_size+1, stride=stride)
-        self.decoder2 = nn.ConvTranspose1d(num_filters * 3, num_filters * 3, kernel_size + 1, stride=stride)
+        self.decoder2 = nn.ConvTranspose1d(num_filters * 3, num_filters * 3, kernel_size+1, stride=stride)
         self.decoder3 = norm_layer(num_filters * 3)
 
-        self.decoder4 = nn.ConvTranspose1d(num_filters * 3, num_filters * 2, kernel_size + 1, stride=stride)
-        self.decoder5 = nn.ConvTranspose1d(num_filters * 2, num_filters * 2, kernel_size + 1, stride=stride)
+        self.decoder4 = nn.ConvTranspose1d(num_filters * 3, num_filters * 2, kernel_size+1, stride=stride)
+        self.decoder5 = nn.ConvTranspose1d(num_filters * 2, num_filters * 2, kernel_size, stride=stride)
         self.decoder6 = norm_layer(num_filters * 2)
 
-        self.decoder7 = nn.ConvTranspose1d(num_filters * 2, num_filters, kernel_size-2, stride=stride)
-        self.decoder8 = nn.ConvTranspose1d(num_filters, num_filters, kernel_size + 1, stride=stride)
+        self.decoder7 = nn.ConvTranspose1d(num_filters * 2, num_filters, kernel_size+1, stride=stride)
+        self.decoder8 = nn.ConvTranspose1d(num_filters, num_filters, kernel_size, stride=stride)
         self.decoder9 = norm_layer(num_filters)
 
-        self.decoder10 = nn.ConvTranspose1d(num_filters, num_filters, kernel_size-1, stride=stride)
+        self.decoder10 = nn.ConvTranspose1d(num_filters, 1, kernel_size, stride=stride)
 
 
         self.encoder_relu = nn.LeakyReLU(0.2, True)
         self.decoder_relu = nn.LeakyReLU(0.2, True)
+        self.tanh = nn.Tanh()
 
 
     def forward(self, x):
@@ -110,8 +111,8 @@ class Generator(nn.Module):
         x = self.decoder8(x)
         x = self.decoder_relu(self.decoder9(x))
 
-        x = nn.Tanh(self.decoder10(x))
-        print('Decoder ', x.size())
+        x = self.tanh(self.decoder10(x))
+        #print('Decoder ', x.size())
 
         return x
 

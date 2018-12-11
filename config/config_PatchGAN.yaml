@@ -1,12 +1,12 @@
 cuda: True
 batch_size: 32
-epochs: 32
+epochs: 100
 learning_rate: 0.0002
 momentum: 0.8
 beta1: 0.5
 beta2: 0.5
 L1_lambda: 0.01
-dataset: 'data/preprocessed/filtered_dataset.csv'
+dataset: 'data/preprocessed/filtered_datasetv3.csv'
 saved_embeddings: 'results/'
 label_dict: 'data/preprocessed/label_dict.pkl'
 saved_models: 'weights/'

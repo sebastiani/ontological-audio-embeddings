@@ -19,8 +19,8 @@ from ontological_audio_embeddings.src.models.PatchGAN import Discriminator, Gene
 class BaseModel(object):
     def __init__(self, params):
         #self.Generator = Transformer
-        self.Generator = Generator(input_dim=160083, p=params['dropout'])
-        self.Discriminator = Discriminator(input_dim=160083)
+        self.Generator = Generator(input_dim=1, p=params['dropout'])
+        self.Discriminator = Discriminator(input_dim=2)
 
         self.cuda = params['cuda']
         self.batch_size = params['batch_size']
@@ -111,9 +111,8 @@ class BaseModel(object):
             discriminator_train_running_loss = 0.0
             generator_train_running_loss = 0.0
 
-            for i, (samples, noisy_samples, _) in enumerate(trainLoader):
+            for i, (inputs, noisy_inputs, _) in enumerate(trainLoader):
                 print("Processing batch ", i)
-                inputs, noisy_inputs = torch.from_numpy(samples), torch.from_numpy(noisy_samples)
 
                 if self.cuda:
                     inputs = inputs.cuda()
@@ -129,12 +128,13 @@ class BaseModel(object):
                 D_optimizer.zero_grad()
 
                 # pairs up generated samples with noisy real samples
-                fake_pairs = torch.cat((noisy_inputs, fake_samples), 1)
+                fake_pairs = torch.cat((noisy_inputs.type(torch.cuda.FloatTensor), fake_samples), 1)
+                
                 pred_fake = self.Discriminator(fake_pairs.detach())  # detaching so backprop doesnt go to the Generator
                 D_loss_fake = criterionGAN(pred_fake, False)
 
                 # pairs up real samples and noisy samples
-                true_pairs = torch.cat((noisy_inputs, inputs), 1)
+                true_pairs = torch.cat((noisy_inputs.type(torch.cuda.FloatTensor), inputs.type(torch.cuda.FloatTensor)), 1)
                 pred_real = self.Discriminator(true_pairs)
                 D_loss_real = criterionGAN(pred_real, True)
 
@@ -151,11 +151,11 @@ class BaseModel(object):
                 G_optimizer.zero_grad()
 
                 pred_fake = self.Discriminator(fake_pairs)
-                G_loss = criterionGAN(pred_fake)  # check that it isnt detached
+                G_loss = criterionGAN(pred_fake, False)  # check that it isnt detached
                 G_loss_L1 = criterionL1(fake_samples, inputs) * self.lambda_l1
 
                 generatorLoss = G_loss + G_loss_L1
-                self.writer('generator/loss', generatorLoss, i)
+                self.writer.add_scalar('generator/loss', generatorLoss, i)
                 generatorLoss.backward()
                 G_optimizer.step()
 
@@ -163,10 +163,9 @@ class BaseModel(object):
 
                 if i % 5 == 0:
                     print('[%d, %5d] train loss: %.3f' %
-                          (epoch + 1, i + 1, train_running_loss / 100))
-                    train_running_loss = 0.0
-                #ERASE THIS
-                break
+                          (epoch + 1, i + 1, generator_train_running_loss / 100))
+                    generator_train_running_loss = 0.0
+                
 
 
             print("Saving checkpoints...")
@@ -206,19 +205,18 @@ class BaseModel(object):
         self.writer.export_scalars_to_json('logger/losses.json')
         self.writer.close()
 
-    def generate(self, params, cond_x, load=False):
+    def generate(self, params, inputs, load=False):
         if load:
             self.Generator.load_state_dict(torch.load(params['saved_models'] + 'final_model_weights.pt'))
 
             self.set_requires_grad(self.Generator, False)
             self.turn_batch_norm_off(self.Generator, True)
 
-        inputs = torch.from_numpy(cond_x)
         if self.cuda:
             inputs.cuda()
         inputs = Variable(inputs)
 
-        emb = self.Generator.getEmbedding(inputs)
+        emb = self.Generator.getEmbedding(inputs.type(torch.cuda.FloatTensor))
         emb = emb.cpu().numpy()
 
         return emb
