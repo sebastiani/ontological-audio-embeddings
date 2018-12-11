@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/akasha/projects/')
 import numpy as np
 import librosa
 import os
