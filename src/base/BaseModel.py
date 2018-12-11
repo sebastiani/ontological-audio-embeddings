@@ -99,9 +99,9 @@ class BaseModel(object):
 
 
         G_optimizer = optim.Adam(self.Generator.parameters(),
-                                 lr=self.lr, betas=(self.beta1, 0.999))
+                                 lr=self.lr1, betas=(self.beta1, 0.999))
         D_optimizer = optim.Adam(self.Discriminator.parameters(),
-                                 lr=self.lr, betas=(self.beta2, 0.999))
+                                 lr=self.lr2, betas=(self.beta2, 0.999))
 
         scheduler1 = self.scheduler(G_optimizer)
         scheduler2 = self.scheduler(D_optimizer)
