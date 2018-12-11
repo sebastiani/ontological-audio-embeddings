@@ -108,25 +108,30 @@ class DataUtils(object):
         mins = []
         for f in files:
             if '.npy' in f:
-                x = np.load(f)
+                filename = os.path.join(source, f)
+                x = np.load(filename)
                 m = max(x)
                 maxes.append(m)
                 m = min(x)
                 mins.append(m)
+
         f_max = max(maxes)
         f_min = min(mins)
 
         m = 2.0/(f_max - f_min)
         b = -1.0 - m*f_min
         def normalize(f):
-            x = np.load(f)
+            filename = os.path.join(source, f)
+            x = np.load(filename)
             new_x = m*x + b
-            np.save(f, new_x)
+            new_filename = os.path.join(dest, f)
+            np.save(new_filename, new_x)
 
         pool = ThreadPool(multiprocessing.cpu_count())
         results = []
         for file in files:
             results.append(pool.apply_async(normalize, (file, )))
+
         pool.close()
         pool.join()
 
@@ -144,6 +149,8 @@ if __name__ == '__main__':
     #utils.saveToNPY(intermediate)
     #pkl = "/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/dataDictionary.pkl"
     #utils.pkl2CSV(pkl)
-    utils.padOrTruncate('/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSet',
-                        '/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSetv2')
+    #utils.padOrTruncate('/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSet',
+    #                    '/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSetv2')
+    utils.normalize('/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSetv2',
+                         '/home/akasha/projects/ontological_audio_embeddings/data/preprocessed/rawAudioSetv3')
 
