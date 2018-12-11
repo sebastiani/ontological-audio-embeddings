@@ -1,18 +1,19 @@
 import os
 import torch
+import datetime
+import time
 import torch.optim as optim
 import torch.nn as nn
-from torch.autograd import Variable
-import pickle
-import torch.functional as F
 import numpy as np
+from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from ontological_audio_embeddings.src.data_loader.AudioSetDataset import AudioSetDataset
-import datetime
-import time
+from tensorboardX import SummaryWriter
 
 from ontological_audio_embeddings.src.models.PatchGAN import Discriminator, Generator, GANLoss
+
+
 #from ontological_audio_embeddings.src.models.Transformer import Transformer
 
 class BaseModel(object):
@@ -37,6 +38,8 @@ class BaseModel(object):
         self.epoch_count = params['epoch_count']
         self.niter = params['niter']
         self.niter_decay = params['niter_decay']
+
+        self.writer = SummaryWriter()
 
     def train(self, params):
         if self.Generator is None and self.Discriminator is None:
@@ -132,6 +135,7 @@ class BaseModel(object):
                 D_loss_real = criterionGAN(pred_real, True)
 
                 discriminatorLoss = 0.5*(D_loss_fake + D_loss_real)
+                self.writer.add_scalar('discriminator/loss', discriminatorLoss, i)
 
                 discriminatorLoss.backward()
 
@@ -147,6 +151,7 @@ class BaseModel(object):
                 G_loss_L1 = criterionL1(fake_samples, inputs) * self.lambda_l1
 
                 generatorLoss = G_loss + G_loss_L1
+                self.writer('generator/loss', generatorLoss, i)
                 generatorLoss.backward()
                 G_optimizer.step()
 
@@ -156,6 +161,8 @@ class BaseModel(object):
                     print('[%d, %5d] train loss: %.3f' %
                           (epoch + 1, i + 1, train_running_loss / 100))
                     train_running_loss = 0.0
+                #ERASE THIS
+                break
 
 
             print("Saving checkpoints...")
@@ -186,10 +193,14 @@ class BaseModel(object):
                 self.set_requires_grad(self.Generator, True)
                 self.turn_batch_norm_off(self.Generator, False)
 
+            break
+
 
         print("Finished training!")
         print("Saving model to %s" % (params['saved_models'] + 'final_model_weights.pt'))
         torch.save(self.Generator.state_dict(), params['saved_models'] + 'final_model_weights.pt')
+        self.writer.export_scalars_to_json('logger/losses.json')
+        self.writer.close()
 
     def generate(self, params, cond_x, load=False):
         if load:
