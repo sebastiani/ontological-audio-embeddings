@@ -30,7 +30,7 @@ class GANLoss(nn.Module):
             return self.loss(input, target_fake_label)
 
 class Generator(nn.Module):
-    def __init__(self, input_dim, num_filters=16, norm_layer=nn.BatchNorm1d, use_sigmoid=False):
+    def __init__(self, input_dim, num_filters=16, norm_layer=nn.BatchNorm1d, p=0.3):
         super(Generator, self).__init__()
         self.input_dim = input_dim
 
@@ -40,9 +40,9 @@ class Generator(nn.Module):
 
         stride = 2
 
-        self.encoder_layers = []
+        #self.encoder_layers = []
         previous_mult = input_dim
-
+        self.dropout = nn.Dropout(p=p)
         # Encoder
         self.encoder1 = nn.Conv1d(previous_mult, num_filters, kernel_size, stride=stride)
         self.encoder2 = nn.Conv1d(num_filters, num_filters, kernel_size, stride=stride)
@@ -57,8 +57,8 @@ class Generator(nn.Module):
         self.encoder9 = norm_layer(num_filters*3)
 
         self.encoder10 = nn.Conv1d(num_filters*3, num_filters * 4, kernel_size, stride=stride)
-        self.encoder11 = nn.Conv1d(num_filters*4, num_filters * 4, kernel_size, stride=stride)
-        self.encoder12 = norm_layer(num_filters * 4)
+        #self.encoder11 = nn.Conv1d(num_filters*4, num_filters * 4, kernel_size, stride=stride)
+        self.encoder11 = norm_layer(num_filters * 4)
 
         # Decoder
         self.decoder1 = nn.ConvTranspose1d(num_filters*4, num_filters * 3, kernel_size+1, stride=stride)
@@ -83,18 +83,18 @@ class Generator(nn.Module):
     def forward(self, x):
         x = self.encoder_relu(self.encoder1(x))
         x = self.encoder2(x)
-        x1 = self.encoder_relu(self.encoder3(x))
+        x1 = self.dropout(self.encoder_relu(self.encoder3(x)))
 
         x = self.encoder_relu(self.encoder4(x1))
         x = self.encoder5(x)
-        x2 = self.encoder_relu(self.encoder6(x))
+        x2 = self.dropout(self.encoder_relu(self.encoder6(x)))
 
         x = self.encoder_relu(self.encoder7(x2))
         x = self.encoder8(x)
-        x3 = self.encoder_relu(self.encoder9(x))
+        x3 = self.dropout(self.encoder_relu(self.encoder9(x)))
 
         x = self.encoder_relu(self.encoder10(x3))
-        x = self.encoder12(x)
+        x = self.encoder11(x)
 
         # Decoding
         x = self.decoder_relu(self.decoder1(x)) + x3
@@ -110,7 +110,7 @@ class Generator(nn.Module):
         x = self.decoder8(x)
         x = self.decoder_relu(self.decoder9(x))
 
-        x = self.decoder_relu(self.decoder10(x))
+        x = nn.Tanh(self.decoder10(x))
         print('Decoder ', x.size())
 
         return x
@@ -118,18 +118,18 @@ class Generator(nn.Module):
     def getEmbedding(self, x):
         x = self.encoder_relu(self.encoder1(x))
         x = self.encoder2(x)
-        x = self.encoder_relu(self.encoder3(x))
+        x1 = self.dropout(self.encoder_relu(self.encoder3(x)))
 
-        x = self.encoder_relu(self.encoder4(x))
+        x = self.encoder_relu(self.encoder4(x1))
         x = self.encoder5(x)
-        x = self.encoder_relu(self.encoder6(x))
+        x2 = self.dropout(self.encoder_relu(self.encoder6(x)))
 
-        x = self.encoder_relu(self.encoder7(x))
+        x = self.encoder_relu(self.encoder7(x2))
         x = self.encoder8(x)
-        x = self.encoder_relu(self.encoder9(x))
+        x3 = self.dropout(self.encoder_relu(self.encoder9(x)))
 
-        x = self.encoder_relu(self.encoder10(x))
-        x = self.encoder12(x)
+        x = self.encoder_relu(self.encoder10(x3))
+        x = self.encoder11(x)
 
         return(x)
 
