@@ -83,6 +83,7 @@ class BaseModel(object):
             num_workers=4
         )
 
+        print('Loading models')
         # Start training loop
         if self.cuda:
             self.Generator = self.Generator.cuda()
@@ -91,6 +92,7 @@ class BaseModel(object):
         criterionGAN = GANLoss()
         criterionL1 = torch.nn.L1Loss()
 
+        print("Loading criterions")
         if self.cuda:
             criterionGAN = criterionGAN.cuda()
             criterionL1 = criterionL1.cuda()
@@ -105,10 +107,12 @@ class BaseModel(object):
         scheduler2 = self.scheduler(D_optimizer)
 
         for epoch in range(self.epochs):
+            print('Epoch ', epoch)
             discriminator_train_running_loss = 0.0
             generator_train_running_loss = 0.0
 
             for i, (samples, noisy_samples, _) in enumerate(trainLoader):
+                print("Processing batch ", i)
                 inputs, noisy_inputs = torch.from_numpy(samples), torch.from_numpy(noisy_samples)
 
                 if self.cuda:
