@@ -31,7 +31,7 @@ class AudioSetDataset(Dataset):
         return len(self.dataFrame)
 
     def __getitem__(self, idx):
-        audioName = self.dataFrame.iloc[[idx]]['Path'].values[0]
+        audioName = self.dataFrame.iloc[idx, 0]
         #label = self.dataFrame.iloc[[idx]]
 
         #label = self.label_dict[label]
