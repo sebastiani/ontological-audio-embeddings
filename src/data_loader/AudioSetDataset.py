@@ -21,6 +21,8 @@ class AudioSetDataset(Dataset):
                 root_dir (string): Directory with all the images.
         """
         self.dataFrame = pd.read_csv(csvFile)
+        self.audioNames = self.dataFrame.iloc[:, 0]
+        self.labels = self.dataFrame.iloc[:, 1]
         with open(labelDict, 'rb') as f:
             self.label_dict, self.num_classes = pickle.load(f)
 
@@ -31,8 +33,8 @@ class AudioSetDataset(Dataset):
         return len(self.dataFrame)
 
     def __getitem__(self, idx):
-        audioName = self.dataFrame.iloc[idx, 0]
-        #label = self.dataFrame.iloc[[idx]]
+        audioName = self.audioNames[idx]
+        label = self.labels[idx]
 
         #label = self.label_dict[label]
         #y = np.zeros((1, self.num_classes)).astype('float')
@@ -44,6 +46,6 @@ class AudioSetDataset(Dataset):
         snr = 0.5 if snr >= 0.5 else snr
         noise_var = snr * var
         noisy_audio = audio + np.random.normal(0.0, noise_var, audio.shape)
-        sample = {'clean_audio': audio, 'noisy_audio': noisy_audio}
+        sample = {'clean_audio': audio, 'noisy_audio': noisy_audio, 'label': label}
         return sample
 
